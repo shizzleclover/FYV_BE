@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Your Vibe - Test Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Find Your Vibe</h1>
+        <p class="text-center mb-4">Test interface for backend features</p>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="list-group" id="sidebar">
+                    <a href="#host-section" class="list-group-item list-group-item-action active" data-section="host-section">Host Controls</a>
+                    <a href="#participant-section" class="list-group-item list-group-item-action" data-section="participant-section">Participant Actions</a>
+                    <a href="#voting-section" class="list-group-item list-group-item-action" data-section="voting-section">Voting System</a>
+                    <a href="#matchmaking-section" class="list-group-item list-group-item-action" data-section="matchmaking-section">Matchmaking</a>
+                    <a href="#followup-section" class="list-group-item list-group-item-action" data-section="followup-section">Follow-Up System</a>
+                    <a href="#realtime-section" class="list-group-item list-group-item-action" data-section="realtime-section">Real-time Features</a>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="card">
+                        <div class="card-header">
+                            Current Session
+                        </div>
+                        <div class="card-body">
+                            <div id="session-info">
+                                <p><strong>Event Code:</strong> <span id="current-event-code">None</span></p>
+                                <p><strong>Host Name:</strong> <span id="current-host-name">None</span></p>
+                                <p><strong>Your ID:</strong> <span id="current-participant-id">None</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <div class="content-section active" id="host-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Host Controls</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4>Create Event</h4>
+                            <form id="create-event-form">
+                                <div class="mb-3">
+                                    <label for="host-name" class="form-label">Host Name</label>
+                                    <input type="text" class="form-control" id="host-name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="countdown-duration" class="form-label">Countdown Duration (seconds)</label>
+                                    <input type="number" class="form-control" id="countdown-duration" value="300">
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="use-default-questions" checked>
+                                    <label class="form-check-label" for="use-default-questions">Use Default Questions</label>
+                                </div>
+                                <div id="custom-questions-container" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label">Custom Questions</label>
+                                        <div id="questions-list">
+                                            <div class="question-item mb-3">
+                                                <input type="text" class="form-control mb-2" placeholder="Question text">
+                                                <div class="options-container">
+                                                    <input type="text" class="form-control mb-1" placeholder="Option 1">
+                                                    <input type="text" class="form-control mb-1" placeholder="Option 2">
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1 add-option-btn">+ Add Option</button>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-question-btn">+ Add Question</button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Create Event</button>
+                            </form>
+                            
+                            <hr>
+                            
+                            <h4>Event Details</h4>
+                            <form id="get-event-form" class="mb-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="event-code-details" placeholder="Event Code">
+                                    <button type="submit" class="btn btn-outline-secondary">Get Details</button>
+                                </div>
+                            </form>
+                            <div id="event-details-container" class="d-none">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Event Information</h5>
+                                        <div id="event-details"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <h4>Start Event</h4>
+                            <form id="start-event-form">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="event-code-start" placeholder="Event Code">
+                                    <button type="submit" class="btn btn-success">Start Countdown</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-section" id="participant-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Participant Actions</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4>Join Event</h4>
+                            <form id="join-event-form">
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" id="event-code-join" placeholder="Event Code">
+                                    <button type="submit" class="btn btn-primary">Join Event</button>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="display-name" class="form-label">Display Name (Optional)</label>
+                                    <input type="text" class="form-control" id="display-name" placeholder="Enter a custom display name">
+                                    <div class="form-text">If left blank, a random ID will be assigned to you.</div>
+                                </div>
+                            </form>
+                            
+                            <hr>
+                            
+                            <h4>Submit Questionnaire</h4>
+                            <div id="questionnaire-container" class="d-none">
+                                <form id="questionnaire-form">
+                                    <div id="questions-container"></div>
+                                    <button type="submit" class="btn btn-primary mt-3">Submit Responses</button>
+                                </form>
+                            </div>
+                            <div id="questionnaire-placeholder" class="text-center p-4">
+                                <p>Join an event to see the questionnaire</p>
+                            </div>
+                            
+                            <hr>
+                            
+                            <h4>Submit Outfit</h4>
+                            <form id="outfit-form">
+                                <div class="mb-3">
+                                    <label for="outfit-description" class="form-label">Outfit Description</label>
+                                    <textarea class="form-control" id="outfit-description" rows="2" placeholder="Describe your outfit (e.g., 'Red dress, gold shoes')"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="submit-outfit-btn" disabled>Submit Outfit</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-section" id="voting-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Voting System</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4>Vote for Outfits</h4>
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary" id="load-outfits-btn">Load Outfits</button>
+                            </div>
+                            <div id="outfits-container" class="d-none">
+                                <div class="row" id="outfits-list"></div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <h4>Leaderboard</h4>
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary" id="load-leaderboard-btn">View Leaderboard</button>
+                            </div>
+                            <div id="leaderboard-container" class="d-none">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Participant</th>
+                                            <th>Outfit</th>
+                                            <th>Score</th>
+                                            <th>Votes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leaderboard-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-section" id="matchmaking-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Matchmaking</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4>Trigger Matchmaking (Host Only)</h4>
+                            <form id="trigger-matchmaking-form" class="mb-4">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="event-code-matchmaking" placeholder="Event Code">
+                                    <button type="submit" class="btn btn-danger">Reveal Matches</button>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" class="form-check-input" id="force-rematch-checkbox">
+                                    <label class="form-check-label" for="force-rematch-checkbox">Force rematch (deletes existing matches)</label>
+                                </div>
+                            </form>
+                            
+                            <hr>
+                            
+                            <h4>View Your Match</h4>
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary" id="view-match-btn" disabled>View My Match</button>
+                            </div>
+                            <div id="match-container" class="d-none">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Your Match</h5>
+                                        <div id="match-details"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-section" id="followup-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Follow-Up System</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4>Submit Follow-Up</h4>
+                            <form id="followup-form">
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="reconnect-checkbox">
+                                    <label class="form-check-label" for="reconnect-checkbox">I want to reconnect with my match</label>
+                                </div>
+                                <div class="mb-3" id="contact-info-container" style="display: none;">
+                                    <label for="contact-info" class="form-label">Contact Information</label>
+                                    <input type="text" class="form-control" id="contact-info" placeholder="Email or phone number">
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="submit-followup-btn" disabled>Submit Follow-Up</button>
+                            </form>
+                            
+                            <hr>
+                            
+                            <h4>Check Match Interest</h4>
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary" id="check-match-interest-btn" disabled>Check If Match Wants to Reconnect</button>
+                            </div>
+                            <div id="match-interest-container" class="d-none">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Match Interest</h5>
+                                        <div id="match-interest-details"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <h4>Follow-Up Stats (Host Only)</h4>
+                            <form id="followup-stats-form" class="mb-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="event-code-stats" placeholder="Event Code">
+                                    <button type="submit" class="btn btn-outline-secondary">Get Stats</button>
+                                </div>
+                            </form>
+                            <div id="followup-stats-container" class="d-none">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Follow-Up Statistics</h5>
+                                        <div id="followup-stats"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-section" id="realtime-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Real-time Features</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4>Event Lobby</h4>
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5>Event Information</h5>
+                                            <p><strong>Event Code:</strong> <span id="lobby-event-code">-</span></p>
+                                            <p><strong>Host:</strong> <span id="lobby-host-name">-</span></p>
+                                            <p><strong>Participants:</strong> <span id="lobby-participant-count">0</span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h5>Countdown</h5>
+                                            <div class="text-center">
+                                                <div id="countdown-display" class="display-4">00:00</div>
+                                                <p id="countdown-status">Not started</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h4>Private Chat</h4>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div id="chat-placeholder" class="text-center p-4">
+                                        <p>You need to be matched to use the chat</p>
+                                    </div>
+                                    <div id="chat-container" class="d-none">
+                                        <div id="chat-messages" class="mb-3 p-3 border rounded" style="height: 300px; overflow-y: auto;"></div>
+                                        <form id="chat-form">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="chat-input" placeholder="Type a message...">
+                                                <button type="submit" class="btn btn-primary">Send</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toast-title">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toast-message"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

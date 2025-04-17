@@ -1,0 +1,129 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.container {
+    max-width: 1200px;
+}
+
+.content-section {
+    display: none;
+    margin-bottom: 20px;
+}
+
+.content-section.active {
+    display: block;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #6c5ce7;
+    color: white;
+}
+
+.question-item {
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+/* Questionnaire styles */
+.form-check-input:required {
+    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.25);
+}
+
+.form-check-input:required:checked {
+    box-shadow: none;
+}
+
+.question-options {
+    margin-left: 15px;
+}
+
+#questions-container h4 {
+    border-bottom: 2px solid #6c5ce7;
+    padding-bottom: 5px;
+    margin-top: 25px;
+}
+
+#questions-container h5 {
+    margin-top: 15px;
+    font-weight: 600;
+}
+
+/* Add background color to the first two questions to highlight importance */
+/* Since we inserted instructions as the first child, these are now the 2nd and 3rd divs */
+#questions-container > div:nth-child(2),
+#questions-container > div:nth-child(3) {
+    background-color: #f0f0ff;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #6c5ce7;
+}
+
+#chat-messages {
+    background-color: #f8f9fa;
+}
+
+.chat-message {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 18px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.chat-message.sent {
+    background-color: #6c5ce7;
+    color: white;
+    margin-left: auto;
+}
+
+.chat-message.received {
+    background-color: #e9ecef;
+    color: #212529;
+}
+
+#countdown-display {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #6c5ce7;
+}
+
+.outfit-card {
+    transition: transform 0.2s;
+}
+
+.outfit-card:hover {
+    transform: translateY(-5px);
+}
+
+.star-rating {
+    color: #ffc107;
+    font-size: 1.5rem;
+}
+
+.star-rating .star {
+    cursor: pointer;
+}
+
+.star-rating .star.active {
+    color: #ffc107;
+}
+
+.star-rating .star.inactive {
+    color: #e2e2e2;
+}
+
+#session-info {
+    font-size: 0.9rem;
+}
+
+.toast {
+    opacity: 1 !important;
+}

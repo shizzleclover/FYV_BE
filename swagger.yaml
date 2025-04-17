@@ -1,0 +1,501 @@
+openapi: 3.0.0
+info:
+  title: Find Your Vibe API
+  description: |
+    API documentation for the Find Your Vibe event matching application.
+    
+    The matching algorithm now considers sexual orientation and relationship preferences as key factors in creating compatible matches.
+  version: 1.1.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local development server
+
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        eventCode:
+          type: string
+          description: Unique 6-character event code
+        hostName:
+          type: string
+          description: Name of the event host
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+              options:
+                type: array
+                items:
+                  type: string
+        countdownDuration:
+          type: integer
+          description: Event countdown duration in seconds
+        participantCount:
+          type: integer
+          description: Number of participants in the event
+        startTime:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Participant:
+      type: object
+      properties:
+        anonymousId:
+          type: string
+        displayName:
+          type: string
+        responses:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: integer
+              answer:
+                type: string
+        outfit:
+          type: string
+
+    Match:
+      type: object
+      properties:
+        matchParticipantId:
+          type: string
+        displayName:
+          type: string
+        compatibilityScore:
+          type: number
+        isWildCard:
+          type: boolean
+        outfit:
+          type: string
+
+paths:
+  /events:
+    post:
+      summary: Create a new event
+      description: Create a new event with host information and optional custom questions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hostName
+              properties:
+                hostName:
+                  type: string
+                questions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      text:
+                        type: string
+                      options:
+                        type: array
+                        items:
+                          type: string
+                countdownDuration:
+                  type: integer
+                  description: Duration in seconds (default 3600)
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  eventCode:
+                    type: string
+                  event:
+                    $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid request parameters
+        '500':
+          description: Server error
+
+  /events/{eventCode}:
+    get:
+      summary: Get event details
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/start:
+    post:
+      summary: Start event countdown
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event started successfully
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/join:
+    post:
+      summary: Join an event as a participant
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+      responses:
+        '201':
+          description: Joined event successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  anonymousId:
+                    type: string
+                  displayName:
+                    type: string
+                  eventCode:
+                    type: string
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/responses:
+    post:
+      summary: Submit questionnaire responses
+      description: |
+        Submit responses to the event questionnaire. The questionnaire now includes questions about:
+        - Sexual orientation preferences (which gender you're attracted to)
+        - Relationship goals (friendship, casual dating, long-term, etc.)
+        - Personality and compatibility traits
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - anonymousId
+                - responses
+              properties:
+                anonymousId:
+                  type: string
+                responses:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      questionId:
+                        type: integer
+                        description: "Question ID (0=orientation, 1=relationship goal, 2+ other questions)"
+                      answer:
+                        type: string
+                        description: "Selected answer (must match one of the options provided)"
+      responses:
+        '200':
+          description: Responses submitted successfully
+        '404':
+          description: Participant or event not found
+
+  /events/{eventCode}/outfit:
+    post:
+      summary: Submit outfit description
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - anonymousId
+                - outfit
+              properties:
+                anonymousId:
+                  type: string
+                outfit:
+                  type: string
+      responses:
+        '200':
+          description: Outfit submitted successfully
+        '404':
+          description: Participant or event not found
+
+  /events/{eventCode}/vote:
+    post:
+      summary: Submit a vote for an outfit
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - voterId
+                - outfitOwnerId
+                - score
+              properties:
+                voterId:
+                  type: string
+                outfitOwnerId:
+                  type: string
+                score:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+      responses:
+        '201':
+          description: Vote submitted successfully
+        '400':
+          description: Invalid vote parameters
+        '404':
+          description: Participant or event not found
+
+  /events/{eventCode}/leaderboard:
+    get:
+      summary: Get outfit voting leaderboard
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    anonymousId:
+                      type: string
+                    outfit:
+                      type: string
+                    averageScore:
+                      type: number
+                    voteCount:
+                      type: integer
+
+  /events/{eventCode}/reveal:
+    post:
+      summary: Trigger matchmaking algorithm
+      description: |
+        Triggers the matchmaking algorithm that pairs participants based on compatibility.
+        The algorithm now considers:
+        1. Sexual orientation compatibility (won't match same-gender if participants are only attracted to opposite gender)
+        2. Relationship goal compatibility (won't match people with conflicting relationship goals)
+        3. Personality compatibility based on other question responses
+        4. High compatibility bonus for matches with 70%+ answer agreement
+        5. Small random factor to keep matches interesting
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Force rematch even if matches exist
+      responses:
+        '201':
+          description: Matchmaking completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  matchCount:
+                    type: integer
+        '400':
+          description: Not enough participants or matches already exist
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/matches:
+    get:
+      summary: Get match for a participant
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: anonymousId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Match retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          description: Match not found
+
+  /events/{eventCode}/followup:
+    post:
+      summary: Submit follow-up information
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participantId
+                - reconnect
+              properties:
+                participantId:
+                  type: string
+                reconnect:
+                  type: boolean
+                contactInfo:
+                  type: string
+      responses:
+        '201':
+          description: Follow-up submitted successfully
+        '400':
+          description: Invalid parameters or no match found
+        '404':
+          description: Participant or event not found
+
+  /events/{eventCode}/followup/stats:
+    get:
+      summary: Get anonymized follow-up statistics
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalParticipants:
+                    type: integer
+                  totalMatches:
+                    type: integer
+                  totalFollowUps:
+                    type: integer
+                  wantToReconnect:
+                    type: integer
+                  reconnectPercentage:
+                    type: string
+                  mutualInterestCount:
+                    type: integer
+                  mutualInterestPercentage:
+                    type: string
+
+  /events/{eventCode}/followup/match:
+    get:
+      summary: Check if match has mutual interest in reconnecting
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: participantId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Match interest status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matchParticipantId:
+                    type: string
+                  mutualInterest:
+                    type: boolean
+                  matchContactInfo:
+                    type: string
+                    description: Only provided if there is mutual interest
+        '404':
+          description: Match not found 
