@@ -20,6 +20,7 @@ const participantRoutes = require('./routes/participants');
 const matchRoutes = require('./routes/matches');
 const voteRoutes = require('./routes/votes');
 const followUpRoutes = require('./routes/followups');
+const authRoutes = require('./routes/auth');
 
 // Initialize Express app
 const app = express();
@@ -46,6 +47,7 @@ mongoose.connect(MONGODB_URI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/events', participantRoutes);
 app.use('/api/events', matchRoutes);

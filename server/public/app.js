@@ -2,17 +2,22 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 const SOCKET_URL = 'http://localhost:5000';
 
-// Session state
-let sessionState = {
+// Global session state
+const sessionState = {
     eventCode: null,
-    hostName: null,
     participantId: null,
     displayName: null,
+    responses: [],
     matchId: null,
     matchParticipantId: null,
-    socket: null,
     questions: [],
-    responses: []
+    auth: {
+        token: localStorage.getItem('authToken'),
+        user: null,
+        isHost: false,
+        isAuthenticated: false
+    },
+    socket: null
 };
 
 // DOM Elements
@@ -168,6 +173,11 @@ document.addEventListener('DOMContentLoaded', function() {
     createEventForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // Check if user is authorized as host
+        if (!checkHostAuthorization()) {
+            return;
+        }
+        
         const hostName = document.getElementById('host-name').value;
         const countdownDuration = parseInt(document.getElementById('countdown-duration').value);
         const useDefaultQuestions = document.getElementById('use-default-questions').checked;
@@ -206,10 +216,18 @@ document.addEventListener('DOMContentLoaded', function() {
             requestBody.questions = questions;
         }
         
+        // Check if user is authenticated
+        if (!sessionState.auth.token) {
+            showToast('Error', 'Authentication required. Please login with a host account first.');
+            document.querySelector('#sidebar a[data-section="auth-section"]').click();
+            return;
+        }
+        
         fetch(`${API_BASE_URL}/events`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionState.auth.token}`
             },
             body: JSON.stringify(requestBody)
         })
@@ -306,6 +324,11 @@ document.addEventListener('DOMContentLoaded', function() {
     startEventForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // Check if user is authorized as host
+        if (!checkHostAuthorization()) {
+            return;
+        }
+        
         const eventCode = document.getElementById('event-code-start').value.trim();
         
         if (!eventCode) {
@@ -313,8 +336,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Check if user is authenticated
+        if (!sessionState.auth.token) {
+            showToast('Error', 'Authentication required. Please login with a host account first.');
+            document.querySelector('#sidebar a[data-section="auth-section"]').click();
+            return;
+        }
+        
         fetch(`${API_BASE_URL}/events/${eventCode}/start`, {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${sessionState.auth.token}`
+            }
         })
         .then(response => {
             if (!response.ok) {
@@ -676,6 +709,11 @@ document.addEventListener('DOMContentLoaded', function() {
     triggerMatchmakingForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // Check if user is authorized as host
+        if (!checkHostAuthorization()) {
+            return;
+        }
+        
         const eventCode = document.getElementById('event-code-matchmaking').value.trim();
         const forceRematch = document.getElementById('force-rematch-checkbox').checked;
         
@@ -684,10 +722,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Check if user is authenticated
+        if (!sessionState.auth.token) {
+            showToast('Error', 'Authentication required. Please login with a host account first.');
+            document.querySelector('#sidebar a[data-section="auth-section"]').click();
+            return;
+        }
+        
         fetch(`${API_BASE_URL}/events/${eventCode}/reveal`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionState.auth.token}`
             },
             body: JSON.stringify({
                 force: forceRematch
@@ -889,9 +935,18 @@ document.addEventListener('DOMContentLoaded', function() {
     followupStatsForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
+        // Check if user is authorized as host
+        if (!checkHostAuthorization()) {
+            return;
+        }
+        
         const eventCode = document.getElementById('event-code-stats').value;
         
-        fetch(`${API_BASE_URL}/events/${eventCode}/followup/stats`)
+        fetch(`${API_BASE_URL}/events/${eventCode}/followup/stats`, {
+            headers: {
+                'Authorization': `Bearer ${sessionState.auth.token}`
+            }
+        })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to get follow-up stats');
@@ -1084,6 +1139,68 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle scan failure silently - no need to show errors for each frame
         console.debug(`QR code scanning error: ${error}`);
     }
+    
+    // Register as Host button
+    const registerAsHostBtn = document.getElementById('register-as-host-btn');
+    const registerAsHostCheckbox = document.getElementById('register-as-host-checkbox');
+    const hostRegistrationBanner = document.getElementById('host-registration-banner');
+    const authStatusBanner = document.getElementById('auth-status-banner');
+    const bannerUsername = document.getElementById('banner-username');
+    const bannerUserRole = document.getElementById('banner-user-role');
+    const bannerLogoutBtn = document.getElementById('banner-logout-btn');
+    const goToHostPanelBtn = document.getElementById('go-to-host-panel');
+    
+    // Register as Host button click
+    registerAsHostBtn.addEventListener('click', function() {
+        // Go to auth section and select register tab
+        document.querySelector('#sidebar a[data-section="auth-section"]').click();
+        document.getElementById('register-tab').click();
+        registerAsHostCheckbox.checked = true;
+        
+        // Scroll to the form
+        document.getElementById('register-form').scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    // Go to host panel button click
+    goToHostPanelBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelector('#sidebar a[data-section="host-section"]').click();
+    });
+    
+    // Banner logout button
+    bannerLogoutBtn.addEventListener('click', logoutUser);
+    
+    // Auth form event listeners
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        loginUser(username, password);
+    });
+    
+    document.getElementById('register-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('register-username').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+        const asHost = document.getElementById('register-as-host-checkbox').checked;
+        
+        if (password !== confirmPassword) {
+            showToast('error', 'Passwords do not match!');
+            return;
+        }
+        
+        registerUser(username, email, password, asHost);
+    });
+    
+    document.getElementById('logout-btn').addEventListener('click', logoutUser);
+    
+    // Check authentication status on page load
+    checkAuthStatus();
+    
+    // Initial UI updates
+    updateAuthUI();
 });
 
 // Helper Functions
@@ -1386,4 +1503,242 @@ function showToast(title, message) {
     
     const bsToast = new bootstrap.Toast(toast);
     bsToast.show();
+}
+
+// Authentication functions
+function checkAuthStatus() {
+    if (sessionState.auth.token) {
+        // User has a token, verify if it's valid by fetching current user
+        fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${sessionState.auth.token}`
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                // Token invalid, clear it
+                logoutUser();
+                throw new Error('Session expired. Please login again.');
+            }
+        })
+        .then(userData => {
+            // Valid token, update user data
+            sessionState.auth.user = userData;
+            updateAuthUI();
+        })
+        .catch(error => {
+            console.error('Auth check failed:', error);
+            showToast('error', error.message);
+        });
+    } else {
+        // No token, user is not logged in
+        updateAuthUI();
+    }
+}
+
+function updateAuthUI() {
+    const loggedOutView = document.getElementById('logged-out-view');
+    const loggedInView = document.getElementById('logged-in-view');
+    const hostRegistrationBanner = document.getElementById('host-registration-banner');
+    const authStatusBanner = document.getElementById('auth-status-banner');
+    
+    if (sessionState.auth.user) {
+        // User is logged in
+        sessionState.auth.isAuthenticated = true;
+        loggedOutView.classList.add('d-none');
+        loggedInView.classList.remove('d-none');
+        
+        // Hide registration banner and show status banner
+        hostRegistrationBanner.classList.add('d-none');
+        authStatusBanner.classList.remove('d-none');
+        
+        // Update user info display
+        document.getElementById('current-username').textContent = sessionState.auth.user.username;
+        document.getElementById('current-role').textContent = sessionState.auth.user.role;
+        document.getElementById('banner-username').textContent = sessionState.auth.user.username;
+        document.getElementById('banner-user-role').textContent = sessionState.auth.user.role;
+        
+        // Set isHost flag
+        sessionState.auth.isHost = (sessionState.auth.user.role === 'host' || sessionState.auth.user.role === 'admin');
+        
+        // Enable host features if the user has the host or admin role
+        if (sessionState.auth.isHost) {
+            document.querySelectorAll('.host-only').forEach(el => {
+                el.removeAttribute('disabled');
+                el.classList.remove('disabled');
+            });
+            
+            // Show a toast notification if they're not already in the host section
+            const activeSection = document.querySelector('.content-section.active');
+            if (activeSection && activeSection.id !== 'host-section') {
+                showToast('info', 'You are logged in as a host. Host features are now available.');
+            }
+            
+            // If host/admin section isn't visible, highlight it
+            const hostTab = document.querySelector('#sidebar a[data-section="host-section"]');
+            if (hostTab) {
+                hostTab.classList.add('host-tab-highlight');
+            }
+        } else {
+            // User is logged in but not a host, disable host features
+            document.querySelectorAll('.host-only').forEach(el => {
+                el.setAttribute('disabled', 'disabled');
+                el.classList.add('disabled');
+            });
+            showToast('info', 'You are logged in but need host privileges for some features.');
+        }
+    } else {
+        // User is not logged in
+        sessionState.auth.isAuthenticated = false;
+        sessionState.auth.isHost = false;
+        loggedOutView.classList.remove('d-none');
+        loggedInView.classList.add('d-none');
+        
+        // Show registration banner and hide status banner
+        hostRegistrationBanner.classList.remove('d-none');
+        authStatusBanner.classList.add('d-none');
+        
+        // Disable host features
+        document.querySelectorAll('.host-only').forEach(el => {
+            el.setAttribute('disabled', 'disabled');
+            el.classList.add('disabled');
+        });
+        
+        // Remove any host tab highlighting
+        const hostTab = document.querySelector('#sidebar a[data-section="host-section"]');
+        if (hostTab) {
+            hostTab.classList.remove('host-tab-highlight');
+        }
+    }
+}
+
+function loginUser(username, password) {
+    fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.json().then(err => {
+                throw new Error(err.message || 'Login failed');
+            });
+        }
+    })
+    .then(data => {
+        // Store token and user data
+        sessionState.auth.token = data.token;
+        sessionState.auth.user = data.user;
+        
+        // Save token to localStorage for persistence
+        localStorage.setItem('authToken', data.token);
+        
+        // Update UI
+        updateAuthUI();
+        showToast('success', 'Login successful!');
+        
+        // Reset login form
+        document.getElementById('login-form').reset();
+        
+        // If user is a host, redirect to host section
+        if (sessionState.auth.isHost) {
+            document.querySelector('#sidebar a[data-section="host-section"]').click();
+        }
+    })
+    .catch(error => {
+        console.error('Login error:', error);
+        showToast('error', error.message);
+    });
+}
+
+function registerUser(username, email, password, asHost = false) {
+    // First, register the user
+    fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            username, 
+            email, 
+            password,
+            role: asHost ? 'host' : 'user' // Try to set role directly, although this might be restricted
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.json().then(err => {
+                throw new Error(err.message || 'Registration failed');
+            });
+        }
+    })
+    .then(data => {
+        // If user wants to be a host but the API doesn't support role in registration
+        // We can auto-login the user and then handle host role separately
+        sessionState.auth.token = data.token;
+        sessionState.auth.user = data.user;
+        
+        // Save token to localStorage
+        localStorage.setItem('authToken', data.token);
+        
+        if (asHost && data.user.role !== 'host') {
+            showToast('info', 'Account created! Requesting host privileges...');
+            // Admin would need to approve the host role, show appropriate message
+            showToast('info', 'Host privileges require admin approval. An admin will review your request.');
+        } else {
+            showToast('success', 'Registration successful!');
+        }
+        
+        // Update UI
+        updateAuthUI();
+        
+        // Reset register form
+        document.getElementById('register-form').reset();
+        
+        // If user is a host, redirect to host section
+        if (sessionState.auth.isHost) {
+            document.querySelector('#sidebar a[data-section="host-section"]').click();
+        }
+    })
+    .catch(error => {
+        console.error('Registration error:', error);
+        showToast('error', error.message);
+    });
+}
+
+function logoutUser() {
+    // Clear auth data
+    sessionState.auth.token = null;
+    sessionState.auth.user = null;
+    sessionState.auth.isHost = false;
+    sessionState.auth.isAuthenticated = false;
+    localStorage.removeItem('authToken');
+    
+    // Update UI
+    updateAuthUI();
+    showToast('info', 'You have been logged out.');
+}
+
+// Helper function to check if user is authorized for host actions
+function checkHostAuthorization() {
+    if (!sessionState.auth.isAuthenticated) {
+        showToast('error', 'You must be logged in to perform this action');
+        document.querySelector('#sidebar a[data-section="auth-section"]').click();
+        return false;
+    }
+    
+    if (!sessionState.auth.isHost) {
+        showToast('error', 'This action requires host privileges');
+        return false;
+    }
+    
+    return true;
 }

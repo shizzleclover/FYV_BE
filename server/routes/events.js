@@ -1,16 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const User = require('../models/User');
 const { generateEventCode, validateEventCode } = require('../utils/helpers');
 const defaultQuestions = require('../utils/defaultQuestions');
 const { generateEventQR } = require('../utils/qrCode');
+const { authenticate, authorizeHost, verifyEventOwnership } = require('../middleware/auth');
 
 /**
  * @route   POST /api/events
  * @desc    Create a new event
- * @access  Public
+ * @access  Private/Host
  */
-router.post('/', async (req, res) => {
+router.post('/', authenticate, authorizeHost, async (req, res) => {
   try {
     const { hostName, questions, countdownDuration } = req.body;
 
@@ -48,6 +50,12 @@ router.post('/', async (req, res) => {
 
     const savedEvent = await newEvent.save();
 
+    // Add event to user's events list
+    await User.findByIdAndUpdate(
+      req.user._id,
+      { $push: { events: eventCode } }
+    );
+
     res.status(201).json({
       message: 'Event created successfully',
       eventCode: savedEvent.eventCode,
@@ -55,6 +63,40 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating event:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * @route   GET /api/events/my-events
+ * @desc    Get all events created by the authenticated user
+ * @access  Private
+ */
+router.get('/my-events', authenticate, async (req, res) => {
+  try {
+    const eventCodes = req.user.events || [];
+    
+    if (eventCodes.length === 0) {
+      return res.json([]);
+    }
+    
+    const events = await Event.find({ eventCode: { $in: eventCodes } })
+      .select('eventCode hostName countdownDuration participantCount startTime isActive createdAt');
+    
+    // Add participant count to each event
+    const eventsWithStats = events.map(event => ({
+      eventCode: event.eventCode,
+      hostName: event.hostName,
+      countdownDuration: event.countdownDuration,
+      participantCount: event.participants.length,
+      startTime: event.startTime,
+      isActive: event.isActive,
+      createdAt: event.createdAt
+    }));
+    
+    res.json(eventsWithStats);
+  } catch (error) {
+    console.error('Error fetching user events:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -100,9 +142,9 @@ router.get('/:eventCode', async (req, res) => {
 /**
  * @route   POST /api/events/:eventCode/start
  * @desc    Start the event countdown (host only)
- * @access  Public (should be restricted in production)
+ * @access  Private/Host + Event Owner
  */
-router.post('/:eventCode/start', async (req, res) => {
+router.post('/:eventCode/start', authenticate, verifyEventOwnership, async (req, res) => {
   try {
     const { eventCode } = req.params;
 

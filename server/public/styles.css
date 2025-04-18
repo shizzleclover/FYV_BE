@@ -190,3 +190,82 @@ body {
 #qr-reader__filescan_input {
     margin-top: 15px;
 }
+
+/* Add styles for host-tab-highlight class */
+.host-tab-highlight {
+    box-shadow: 0 0 5px #6c5ce7;
+    position: relative;
+    background-color: #f8f4ff;
+    font-weight: bold;
+}
+
+/* Style for disabled host-only elements */
+.host-only.disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Add tooltip to explain host-only features */
+.host-only.disabled:hover::after {
+    content: "Host privileges required";
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Host registration banner and auth status banner */
+#host-registration-banner {
+    background-color: #6c5ce7;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 8px rgba(108, 92, 231, 0.2);
+}
+
+#host-registration-banner .btn {
+    font-weight: bold;
+    border: 2px solid white;
+    transition: all 0.3s ease;
+}
+
+#host-registration-banner .btn:hover {
+    background-color: #5f50d9;
+    color: white;
+    transform: translateY(-2px);
+}
+
+#auth-status-banner {
+    background-color: #4cd964;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 8px rgba(76, 217, 100, 0.2);
+}
+
+#banner-user-role {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #6c5ce7;
+    font-weight: normal;
+    text-transform: capitalize;
+}
+
+#go-to-host-panel {
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+#go-to-host-panel:hover {
+    transform: translateY(-2px);
+}
+
+#banner-logout-btn:hover {
+    background-color: #ff3b30;
+    color: white;
+}

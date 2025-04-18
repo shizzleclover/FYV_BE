@@ -1,18 +1,614 @@
 openapi: 3.0.0
 info:
   title: Find Your Vibe API
-  description: |
-    API documentation for the Find Your Vibe event matching application.
-    
-    The matching algorithm now considers sexual orientation and relationship preferences as key factors in creating compatible matches.
-  version: 1.1.0
-
+  description: API for Find Your Vibe event matchmaking application
+  version: 1.0.0
 servers:
   - url: http://localhost:5000/api
     description: Local development server
+paths:
+  /events:
+    post:
+      tags:
+        - Events
+      summary: Create a new event
+      description: Create a new event with specified settings (host only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                  description: Event title
+                description:
+                  type: string
+                  description: Event description
+                customQuestions:
+                  type: array
+                  description: Custom questions for the event
+                  items:
+                    type: object
+                    properties:
+                      text:
+                        type: string
+                      options:
+                        type: array
+                        items:
+                          type: string
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventCode:
+                    type: string
+                  title:
+                    type: string
+                  description:
+                    type: string
+        '400':
+          description: Invalid request data
+        '401':
+          description: Unauthorized - Authentication required
+  /events/{eventCode}:
+    get:
+      tags:
+        - Events
+      summary: Get event details
+      description: Retrieve details about an event by its code
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event details retrieved successfully
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/start:
+    post:
+      tags:
+        - Events
+      summary: Start event countdown
+      description: Starts the event countdown (host only)
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event countdown started successfully
+        '401':
+          description: Unauthorized - Authentication required
+        '403':
+          description: Forbidden - Host privileges required
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/join:
+    post:
+      tags:
+        - Participants
+      summary: Join an event
+      description: Allow a participant to join an event using the event code
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  description: Optional display name for the participant
+      responses:
+        '200':
+          description: Successfully joined event
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  participantId:
+                    type: string
+                  eventCode:
+                    type: string
+        '404':
+          description: Event not found
+        '400':
+          description: Invalid request or event not active
+
+  /events/{eventCode}/responses:
+    post:
+      tags:
+        - Participants
+      summary: Submit questionnaire responses
+      description: Submit participant's responses to event questionnaire
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participantId
+                - responses
+              properties:
+                participantId:
+                  type: string
+                responses:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      questionId:
+                        type: string
+                      selectedOption:
+                        type: string
+      responses:
+        '200':
+          description: Responses submitted successfully
+        '400':
+          description: Invalid request data
+        '404':
+          description: Event or participant not found
+
+  /events/{eventCode}/outfit:
+    post:
+      tags:
+        - Participants
+      summary: Submit outfit description
+      description: Submit description or image of participant's outfit
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participantId
+                - description
+              properties:
+                participantId:
+                  type: string
+                description:
+                  type: string
+                  description: Text description of the outfit
+                imageUrl:
+                  type: string
+                  description: Optional URL to outfit image
+      responses:
+        '200':
+          description: Outfit submitted successfully
+        '400':
+          description: Invalid request data
+        '404':
+          description: Event or participant not found
+
+  /events/{eventCode}/reveal:
+    post:
+      tags:
+        - Matches
+      summary: Trigger matchmaking
+      description: Triggers the matchmaking algorithm to create matches (host only)
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matchmaking completed successfully
+        '401':
+          description: Unauthorized - Authentication required
+        '403':
+          description: Forbidden - Host privileges required
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/matches:
+    get:
+      tags:
+        - Matches
+      summary: Get participant's match
+      description: Retrieve match information for a participant
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: participantId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Match retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matchId:
+                    type: string
+                  matchDisplayName:
+                    type: string
+                  compatibilityScore:
+                    type: number
+                  commonInterests:
+                    type: array
+                    items:
+                      type: string
+        '404':
+          description: Event, participant, or match not found
+        '400':
+          description: Matches not revealed yet
+
+  /events/{eventCode}/vote:
+    post:
+      tags:
+        - Votes
+      summary: Submit outfit vote
+      description: Submit a vote for an outfit
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participantId
+                - votedFor
+                - score
+              properties:
+                participantId:
+                  type: string
+                  description: ID of participant submitting the vote
+                votedFor:
+                  type: string
+                  description: ID of participant being voted for
+                score:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  description: Score from 1-10
+      responses:
+        '200':
+          description: Vote submitted successfully
+        '400':
+          description: Invalid request data
+        '404':
+          description: Event or participant not found
+
+  /events/{eventCode}/leaderboard:
+    get:
+      tags:
+        - Votes
+      summary: Get outfit voting leaderboard
+      description: Retrieve outfit voting leaderboard for the event
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    participantId:
+                      type: string
+                    displayName:
+                      type: string
+                    score:
+                      type: number
+                    voteCount:
+                      type: integer
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/followup:
+    post:
+      tags:
+        - Followups
+      summary: Submit follow-up information
+      description: Submit reconnect interest and optional contact info
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - participantId
+                - wantsToReconnect
+              properties:
+                participantId:
+                  type: string
+                wantsToReconnect:
+                  type: boolean
+                contactInfo:
+                  type: string
+                  description: Optional contact information (email, phone, etc.)
+      responses:
+        '200':
+          description: Follow-up information submitted successfully
+        '400':
+          description: Invalid request data
+        '404':
+          description: Event or participant not found
+
+  /events/{eventCode}/followup/stats:
+    get:
+      tags:
+        - Followups
+      summary: Get follow-up statistics
+      description: Retrieve anonymized follow-up statistics for the host
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Follow-up statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalParticipants:
+                    type: integer
+                  reconnectInterestCount:
+                    type: integer
+                  reconnectPercentage:
+                    type: number
+        '401':
+          description: Unauthorized - Authentication required
+        '403':
+          description: Forbidden - Host privileges required
+        '404':
+          description: Event not found
+
+  /events/{eventCode}/followup/match:
+    get:
+      tags:
+        - Followups
+      summary: Check match reconnect interest
+      description: Check if match has mutual interest in reconnecting
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: participantId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Match reconnect status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mutualInterest:
+                    type: boolean
+                  matchContactInfo:
+                    type: string
+                    description: Match's contact info (only if mutual interest)
+        '404':
+          description: Event or participant not found
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '400':
+          description: Invalid request data or user already exists
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate a user and get token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: Username or email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get authenticated user information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+        '401':
+          description: Unauthorized - Authentication required
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [user, host, admin]
+        events:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
     Event:
       type: object
       properties:
@@ -81,11 +677,18 @@ components:
         outfit:
           type: string
 
-paths:
-  /events:
-    post:
-      summary: Create a new event
-      description: Create a new event with host information and optional custom questions
+  /auth/role/{userId}:
+    put:
+      summary: Update user role (admin only)
+      description: Change a user's role to user, host, or admin
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -93,27 +696,14 @@ paths:
             schema:
               type: object
               required:
-                - hostName
+                - role
               properties:
-                hostName:
+                role:
                   type: string
-                questions:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      text:
-                        type: string
-                      options:
-                        type: array
-                        items:
-                          type: string
-                countdownDuration:
-                  type: integer
-                  description: Duration in seconds (default 3600)
+                  enum: [user, host, admin]
       responses:
-        '201':
-          description: Event created successfully
+        '200':
+          description: Role updated successfully
           content:
             application/json:
               schema:
@@ -121,381 +711,34 @@ paths:
                 properties:
                   message:
                     type: string
-                  eventCode:
-                    type: string
-                  event:
-                    $ref: '#/components/schemas/Event'
-        '400':
-          description: Invalid request parameters
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not authorized
+        '404':
+          description: User not found
         '500':
           description: Server error
 
-  /events/{eventCode}:
+  /events/my-events:
     get:
-      summary: Get event details
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
+      summary: Get events created by the authenticated user
+      description: Retrieve all events created by the current user
+      security:
+        - BearerAuth: []
       responses:
         '200':
-          description: Event details retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Event'
-        '404':
-          description: Event not found
-
-  /events/{eventCode}/start:
-    post:
-      summary: Start event countdown
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Event started successfully
-        '404':
-          description: Event not found
-
-  /events/{eventCode}/join:
-    post:
-      summary: Join an event as a participant
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                displayName:
-                  type: string
-      responses:
-        '201':
-          description: Joined event successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  anonymousId:
-                    type: string
-                  displayName:
-                    type: string
-                  eventCode:
-                    type: string
-        '404':
-          description: Event not found
-
-  /events/{eventCode}/responses:
-    post:
-      summary: Submit questionnaire responses
-      description: |
-        Submit responses to the event questionnaire. The questionnaire now includes questions about:
-        - Sexual orientation preferences (which gender you're attracted to)
-        - Relationship goals (friendship, casual dating, long-term, etc.)
-        - Personality and compatibility traits
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - anonymousId
-                - responses
-              properties:
-                anonymousId:
-                  type: string
-                responses:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      questionId:
-                        type: integer
-                        description: "Question ID (0=orientation, 1=relationship goal, 2+ other questions)"
-                      answer:
-                        type: string
-                        description: "Selected answer (must match one of the options provided)"
-      responses:
-        '200':
-          description: Responses submitted successfully
-        '404':
-          description: Participant or event not found
-
-  /events/{eventCode}/outfit:
-    post:
-      summary: Submit outfit description
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - anonymousId
-                - outfit
-              properties:
-                anonymousId:
-                  type: string
-                outfit:
-                  type: string
-      responses:
-        '200':
-          description: Outfit submitted successfully
-        '404':
-          description: Participant or event not found
-
-  /events/{eventCode}/vote:
-    post:
-      summary: Submit a vote for an outfit
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - voterId
-                - outfitOwnerId
-                - score
-              properties:
-                voterId:
-                  type: string
-                outfitOwnerId:
-                  type: string
-                score:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-      responses:
-        '201':
-          description: Vote submitted successfully
-        '400':
-          description: Invalid vote parameters
-        '404':
-          description: Participant or event not found
-
-  /events/{eventCode}/leaderboard:
-    get:
-      summary: Get outfit voting leaderboard
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Leaderboard retrieved successfully
+          description: Events retrieved successfully
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  properties:
-                    anonymousId:
-                      type: string
-                    outfit:
-                      type: string
-                    averageScore:
-                      type: number
-                    voteCount:
-                      type: integer
-
-  /events/{eventCode}/reveal:
-    post:
-      summary: Trigger matchmaking algorithm
-      description: |
-        Triggers the matchmaking algorithm that pairs participants based on compatibility.
-        The algorithm now considers:
-        1. Sexual orientation compatibility (won't match same-gender if participants are only attracted to opposite gender)
-        2. Relationship goal compatibility (won't match people with conflicting relationship goals)
-        3. Personality compatibility based on other question responses
-        4. High compatibility bonus for matches with 70%+ answer agreement
-        5. Small random factor to keep matches interesting
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                force:
-                  type: boolean
-                  description: Force rematch even if matches exist
-      responses:
-        '201':
-          description: Matchmaking completed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  matchCount:
-                    type: integer
-        '400':
-          description: Not enough participants or matches already exist
-        '404':
-          description: Event not found
-
-  /events/{eventCode}/matches:
-    get:
-      summary: Get match for a participant
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: anonymousId
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Match retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Match'
-        '404':
-          description: Match not found
-
-  /events/{eventCode}/followup:
-    post:
-      summary: Submit follow-up information
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - participantId
-                - reconnect
-              properties:
-                participantId:
-                  type: string
-                reconnect:
-                  type: boolean
-                contactInfo:
-                  type: string
-      responses:
-        '201':
-          description: Follow-up submitted successfully
-        '400':
-          description: Invalid parameters or no match found
-        '404':
-          description: Participant or event not found
-
-  /events/{eventCode}/followup/stats:
-    get:
-      summary: Get anonymized follow-up statistics
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Statistics retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  totalParticipants:
-                    type: integer
-                  totalMatches:
-                    type: integer
-                  totalFollowUps:
-                    type: integer
-                  wantToReconnect:
-                    type: integer
-                  reconnectPercentage:
-                    type: string
-                  mutualInterestCount:
-                    type: integer
-                  mutualInterestPercentage:
-                    type: string
-
-  /events/{eventCode}/followup/match:
-    get:
-      summary: Check if a match has mutual interest in reconnecting
-      parameters:
-        - name: eventCode
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: participantId
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Match reconnect information retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  mutualInterest:
-                    type: boolean
-                  matchContactInfo:
-                    type: string
-        '404':
-          description: Participant, match, or followup not found
+                  $ref: '#/components/schemas/Event'
+        '401':
+          description: Not authenticated
         '500':
           description: Server error
 

@@ -13,6 +13,29 @@
         <h1 class="text-center mb-4">Find Your Vibe</h1>
         <p class="text-center mb-4">Test interface for backend features</p>
 
+        <!-- Add Banner with Register as Host button -->
+        <div class="alert alert-primary mb-4 d-flex justify-content-between align-items-center" id="host-registration-banner">
+            <div>
+                <h4 class="alert-heading">Want to host your own event?</h4>
+                <p class="mb-0">Register as a host to create and manage your own Find Your Vibe events.</p>
+            </div>
+            <button type="button" class="btn btn-light" id="register-as-host-btn">Register as Host</button>
+        </div>
+        
+        <!-- Auth Status Banner for Logged In Users -->
+        <div class="alert alert-success mb-4 d-none" id="auth-status-banner">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="alert-heading">Welcome, <span id="banner-username"></span>!</h4>
+                    <p class="mb-0">You are logged in as: <span id="banner-user-role" class="badge bg-primary"></span></p>
+                </div>
+                <div>
+                    <a href="#host-section" class="btn btn-primary me-2" id="go-to-host-panel">Host Panel</a>
+                    <button type="button" class="btn btn-outline-danger" id="banner-logout-btn">Logout</button>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-md-3">
                 <div class="list-group" id="sidebar">
@@ -23,6 +46,7 @@
                     <a href="#followup-section" class="list-group-item list-group-item-action" data-section="followup-section">Follow-Up System</a>
                     <a href="#realtime-section" class="list-group-item list-group-item-action" data-section="realtime-section">Real-time Features</a>
                     <a href="#qrcode-section" class="list-group-item list-group-item-action" data-section="qrcode-section">QR Code</a>
+                    <a href="#auth-section" class="list-group-item list-group-item-action" data-section="auth-section">Authentication</a>
                 </div>
                 
                 <div class="mt-4">
@@ -78,7 +102,7 @@
                                         <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-question-btn">+ Add Question</button>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-primary">Create Event</button>
+                                <button type="submit" class="btn btn-primary host-only">Create Event</button>
                             </form>
                             
                             <hr>
@@ -105,7 +129,7 @@
                             <form id="start-event-form">
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="event-code-start" placeholder="Event Code">
-                                    <button type="submit" class="btn btn-success">Start Countdown</button>
+                                    <button type="submit" class="btn btn-success host-only">Start Countdown</button>
                                 </div>
                             </form>
                         </div>
@@ -214,7 +238,7 @@
                             <form id="trigger-matchmaking-form" class="mb-4">
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="event-code-matchmaking" placeholder="Event Code">
-                                    <button type="submit" class="btn btn-danger">Reveal Matches</button>
+                                    <button type="submit" class="btn btn-danger host-only">Reveal Matches</button>
                                 </div>
                                 <div class="form-check mt-2">
                                     <input type="checkbox" class="form-check-input" id="force-rematch-checkbox">
@@ -280,7 +304,7 @@
                             <form id="followup-stats-form" class="mb-3">
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="event-code-stats" placeholder="Event Code">
-                                    <button type="submit" class="btn btn-outline-secondary">Get Stats</button>
+                                    <button type="submit" class="btn btn-outline-secondary host-only">Get Stats</button>
                                 </div>
                             </form>
                             <div id="followup-stats-container" class="d-none">
@@ -386,6 +410,85 @@
                             <div id="scanner-container" class="d-none">
                                 <div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
                                 <div id="qr-reader-results" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-section" id="auth-section">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3>Authentication</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="auth-status" class="mb-4">
+                                <div id="logged-out-view">
+                                    <p>You are not logged in. Please login or register to access host features.</p>
+                                </div>
+                                <div id="logged-in-view" class="d-none">
+                                    <div class="alert alert-success">
+                                        <p><strong>You are logged in!</strong></p>
+                                        <p>Username: <span id="current-username"></span></p>
+                                        <p>Role: <span id="current-role"></span></p>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger mb-3" id="logout-btn">Logout</button>
+                                </div>
+                            </div>
+                            
+                            <ul class="nav nav-tabs" id="authTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-tab-content" type="button" role="tab" aria-controls="login" aria-selected="true">Login</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-tab-content" type="button" role="tab" aria-controls="register" aria-selected="false">Register</button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content" id="authTabsContent">
+                                <!-- Login Form -->
+                                <div class="tab-pane fade show active p-3" id="login-tab-content" role="tabpanel" aria-labelledby="login-tab">
+                                    <form id="login-form">
+                                        <div class="mb-3">
+                                            <label for="login-username" class="form-label">Username or Email</label>
+                                            <input type="text" class="form-control" id="login-username" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="login-password" class="form-label">Password</label>
+                                            <input type="password" class="form-control" id="login-password" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Login</button>
+                                    </form>
+                                </div>
+                                
+                                <!-- Register Form -->
+                                <div class="tab-pane fade p-3" id="register-tab-content" role="tabpanel" aria-labelledby="register-tab">
+                                    <form id="register-form">
+                                        <div class="mb-3">
+                                            <label for="register-username" class="form-label">Username</label>
+                                            <input type="text" class="form-control" id="register-username" required minlength="3">
+                                            <div class="form-text">Username must be at least 3 characters long.</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="register-email" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="register-email" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="register-password" class="form-label">Password</label>
+                                            <input type="password" class="form-control" id="register-password" required minlength="6">
+                                            <div class="form-text">Password must be at least 6 characters long.</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="register-confirm-password" class="form-label">Confirm Password</label>
+                                            <input type="password" class="form-control" id="register-confirm-password" required minlength="6">
+                                        </div>
+                                        <div class="mb-3 form-check">
+                                            <input type="checkbox" class="form-check-input" id="register-as-host-checkbox">
+                                            <label class="form-check-label" for="register-as-host-checkbox">Register as a Host</label>
+                                            <div class="form-text">Check this if you want to create and manage events.</div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Register</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>

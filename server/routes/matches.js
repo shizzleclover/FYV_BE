@@ -3,13 +3,14 @@ const router = express.Router();
 const Match = require('../models/Match');
 const Event = require('../models/Event');
 const Participant = require('../models/Participant');
+const { authenticate, verifyEventOwnership } = require('../middleware/auth');
 
 /**
  * @route   POST /api/events/:eventCode/reveal
  * @desc    Trigger matchmaking algorithm (host only)
- * @access  Public (should be restricted to host in production)
+ * @access  Private/Host + Event Owner
  */
-router.post('/:eventCode/reveal', async (req, res) => {
+router.post('/:eventCode/reveal', authenticate, verifyEventOwnership, async (req, res) => {
   try {
     const { eventCode } = req.params;
     const { force } = req.body; // Add a force parameter to allow re-triggering
