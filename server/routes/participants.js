@@ -3,6 +3,7 @@ const router = express.Router();
 const Participant = require('../models/Participant');
 const Event = require('../models/Event');
 const { generateAnonymousId, validateEventCode } = require('../utils/helpers');
+const { upload } = require('../utils/cloudinary');
 
 /**
  * @route   POST /api/events/:eventCode/join
@@ -140,10 +141,10 @@ router.post('/:eventCode/responses', async (req, res) => {
 
 /**
  * @route   POST /api/events/:eventCode/outfit
- * @desc    Submit outfit description
+ * @desc    Submit outfit description and optional image
  * @access  Public
  */
-router.post('/:eventCode/outfit', async (req, res) => {
+router.post('/:eventCode/outfit', upload.single('outfitImage'), async (req, res) => {
   try {
     const { eventCode } = req.params;
     const { anonymousId, outfit } = req.body;
@@ -172,11 +173,18 @@ router.post('/:eventCode/outfit', async (req, res) => {
 
     // Update participant outfit
     participant.outfit = outfit;
+    
+    // If there's an uploaded image, store its URL
+    if (req.file && req.file.path) {
+      participant.outfitImageUrl = req.file.path;
+    }
+    
     await participant.save();
 
     res.json({
       message: 'Outfit submitted successfully',
-      anonymousId
+      anonymousId,
+      outfitImageUrl: participant.outfitImageUrl
     });
   } catch (error) {
     console.error('Error submitting outfit:', error);

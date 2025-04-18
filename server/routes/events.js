@@ -3,6 +3,7 @@ const router = express.Router();
 const Event = require('../models/Event');
 const { generateEventCode, validateEventCode } = require('../utils/helpers');
 const defaultQuestions = require('../utils/defaultQuestions');
+const { generateEventQR } = require('../utils/qrCode');
 
 /**
  * @route   POST /api/events
@@ -128,6 +129,46 @@ router.post('/:eventCode/start', async (req, res) => {
   } catch (error) {
     console.error('Error starting event:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * @route   GET /api/events/:eventCode/qrcode
+ * @desc    Generate a QR code for joining an event
+ * @access  Public
+ */
+router.get('/:eventCode/qrcode', async (req, res) => {
+  try {
+    const { eventCode } = req.params;
+
+    // Validate event code format
+    if (!validateEventCode(eventCode)) {
+      return res.status(400).json({ message: 'Invalid event code format' });
+    }
+
+    // Find event by code to verify it exists
+    const event = await Event.findOne({ eventCode });
+
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    // Get the base URL from request or use default
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+
+    // Generate QR code
+    const qrCode = await generateEventQR(eventCode, baseUrl);
+    
+    res.json({
+      eventCode,
+      qrCode: qrCode.dataUrl,
+      joinUrl: qrCode.joinUrl
+    });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    res.status(500).json({ message: 'Server error', details: error.message });
   }
 });
 

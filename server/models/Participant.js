@@ -31,6 +31,10 @@ const ParticipantSchema = new Schema({
     type: String,
     trim: true
   },
+  outfitImageUrl: {
+    type: String,
+    trim: true
+  },
   isActive: {
     type: Boolean,
     default: true

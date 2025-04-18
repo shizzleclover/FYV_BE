@@ -113,6 +113,7 @@ router.get('/:eventCode/leaderboard', async (req, res) => {
         leaderboard.push({
           anonymousId: participant.anonymousId,
           outfit: participant.outfit,
+          outfitImageUrl: participant.outfitImageUrl || null,
           averageScore,
           voteCount: participantVotes.length
         });
@@ -120,6 +121,7 @@ router.get('/:eventCode/leaderboard', async (req, res) => {
         leaderboard.push({
           anonymousId: participant.anonymousId,
           outfit: participant.outfit,
+          outfitImageUrl: participant.outfitImageUrl || null,
           averageScore: 0,
           voteCount: 0
         });

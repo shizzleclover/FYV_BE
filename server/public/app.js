@@ -69,6 +69,47 @@ document.addEventListener('DOMContentLoaded', function() {
     // Real-time Features
     const chatForm = document.getElementById('chat-form');
     
+    // Add image preview functionality
+    const outfitImageInput = document.getElementById('outfit-image');
+    const outfitImagePreview = document.getElementById('outfit-image-preview');
+    
+    outfitImageInput.addEventListener('change', function() {
+        // Clear existing preview
+        outfitImagePreview.src = '';
+        outfitImagePreview.classList.add('d-none');
+        
+        // Check if a file was selected
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                outfitImagePreview.src = e.target.result;
+                outfitImagePreview.classList.remove('d-none');
+            };
+            
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    
+    // QR Code Generation and Scanning
+    const generateQRForm = document.getElementById('generate-qr-form');
+    const startScannerBtn = document.getElementById('start-scanner-btn');
+    const stopScannerBtn = document.getElementById('stop-scanner-btn');
+    
+    // Check for join parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinEventCode = urlParams.get('join');
+    
+    if (joinEventCode) {
+        // Auto-fill the join form
+        document.getElementById('event-code-join').value = joinEventCode;
+        
+        // Switch to participant section
+        document.querySelector('#sidebar a[data-section="participant-section"]').click();
+        
+        showToast('Info', `Event code ${joinEventCode} detected. Enter your display name and join the event.`);
+    }
+    
     // Event Listeners
     
     // Toggle custom questions
@@ -442,15 +483,22 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Create FormData object for file upload
+        const formData = new FormData();
+        formData.append('anonymousId', sessionState.participantId);
+        formData.append('outfit', outfitDescription);
+        
+        // Check if an image was selected
+        const outfitImageInput = document.getElementById('outfit-image');
+        if (outfitImageInput.files && outfitImageInput.files[0]) {
+            formData.append('outfitImage', outfitImageInput.files[0]);
+        }
+        
         fetch(`${API_BASE_URL}/events/${sessionState.eventCode}/outfit`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                anonymousId: sessionState.participantId,
-                outfit: outfitDescription
-            })
+            body: formData
+            // Note: Don't set Content-Type header when sending FormData,
+            // browser will set it automatically with the correct boundary
         })
         .then(response => {
             if (!response.ok) {
@@ -460,6 +508,18 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             showToast('Success', 'Outfit submitted successfully');
+            
+            // Store image URL if provided
+            if (data.outfitImageUrl) {
+                sessionState.outfitImageUrl = data.outfitImageUrl;
+                
+                // Show preview of the uploaded image
+                const imagePreview = document.getElementById('outfit-image-preview');
+                if (imagePreview) {
+                    imagePreview.src = data.outfitImageUrl;
+                    imagePreview.classList.remove('d-none');
+                }
+            }
         })
         .catch(error => {
             console.error('Error submitting outfit:', error);
@@ -474,68 +534,88 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // In a real implementation, we would fetch all participants with outfits
-        // For this demo, we'll create some sample outfits
-        const sampleOutfits = [
-            { participantId: 'Player123', outfit: 'Red dress, gold shoes' },
-            { participantId: 'Player456', outfit: 'Black suit, blue tie' },
-            { participantId: 'Player789', outfit: 'Green sweater, khaki pants' }
-        ];
-        
-        const outfitsContainer = document.getElementById('outfits-container');
-        const outfitsList = document.getElementById('outfits-list');
-        
-        outfitsContainer.classList.remove('d-none');
-        outfitsList.innerHTML = '';
-        
-        sampleOutfits.forEach(outfit => {
-            // Skip the current user's outfit
-            if (outfit.participantId === sessionState.participantId) {
+        // Fetch outfits from the API
+        fetch(`${API_BASE_URL}/events/${sessionState.eventCode}/leaderboard`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load outfits');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const outfitsContainer = document.getElementById('outfits-container');
+            const outfitsList = document.getElementById('outfits-list');
+            
+            outfitsContainer.classList.remove('d-none');
+            outfitsList.innerHTML = '';
+            
+            // Filter to remove current user's outfit
+            const outfitsToDisplay = data.filter(outfit => outfit.anonymousId !== sessionState.participantId);
+            
+            if (outfitsToDisplay.length === 0) {
+                outfitsList.innerHTML = '<div class="col-12"><div class="alert alert-info">No outfits available to vote on yet.</div></div>';
                 return;
             }
             
-            const outfitCard = document.createElement('div');
-            outfitCard.className = 'col-md-4 mb-3';
-            outfitCard.innerHTML = `
-                <div class="card outfit-card">
-                    <div class="card-body">
-                        <h5 class="card-title">${outfit.participantId}</h5>
-                        <p class="card-text">${outfit.outfit}</p>
-                        <div class="star-rating" data-participant="${outfit.participantId}">
-                            <span class="star" data-rating="1">★</span>
-                            <span class="star" data-rating="2">★</span>
-                            <span class="star" data-rating="3">★</span>
-                            <span class="star" data-rating="4">★</span>
-                            <span class="star" data-rating="5">★</span>
+            outfitsToDisplay.forEach(outfit => {
+                const outfitCard = document.createElement('div');
+                outfitCard.className = 'col-md-4 mb-3';
+                
+                let outfitImageHtml = '';
+                if (outfit.outfitImageUrl) {
+                    outfitImageHtml = `
+                        <div class="outfit-image-container mb-3">
+                            <img src="${outfit.outfitImageUrl}" class="img-fluid outfit-image" alt="Outfit image" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">
+                        </div>
+                    `;
+                }
+                
+                outfitCard.innerHTML = `
+                    <div class="card outfit-card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">${outfit.anonymousId}</h5>
+                            ${outfitImageHtml}
+                            <p class="card-text">${outfit.outfit}</p>
+                            <div class="star-rating" data-participant="${outfit.anonymousId}">
+                                <span class="star" data-rating="1">★</span>
+                                <span class="star" data-rating="2">★</span>
+                                <span class="star" data-rating="3">★</span>
+                                <span class="star" data-rating="4">★</span>
+                                <span class="star" data-rating="5">★</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-            
-            outfitsList.appendChild(outfitCard);
-        });
-        
-        // Add event listeners to stars
-        document.querySelectorAll('.star-rating .star').forEach(star => {
-            star.addEventListener('click', function() {
-                const rating = parseInt(this.getAttribute('data-rating'));
-                const participantId = this.parentElement.getAttribute('data-participant');
+                `;
                 
-                // Update UI
-                const stars = this.parentElement.querySelectorAll('.star');
-                stars.forEach(s => {
-                    if (parseInt(s.getAttribute('data-rating')) <= rating) {
-                        s.classList.add('active');
-                        s.classList.remove('inactive');
-                    } else {
-                        s.classList.add('inactive');
-                        s.classList.remove('active');
-                    }
-                });
-                
-                // Submit vote
-                submitVote(participantId, rating);
+                outfitsList.appendChild(outfitCard);
             });
+            
+            // Add event listeners to stars
+            document.querySelectorAll('.star-rating .star').forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    const participantId = this.parentElement.getAttribute('data-participant');
+                    
+                    // Update UI
+                    const stars = this.parentElement.querySelectorAll('.star');
+                    stars.forEach(s => {
+                        if (parseInt(s.getAttribute('data-rating')) <= rating) {
+                            s.classList.add('active');
+                            s.classList.remove('inactive');
+                        } else {
+                            s.classList.add('inactive');
+                            s.classList.remove('active');
+                        }
+                    });
+                    
+                    // Submit vote
+                    submitVote(participantId, rating);
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error loading outfits:', error);
+            showToast('Error', 'Failed to load outfits');
         });
     });
     
@@ -565,10 +645,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             data.forEach((entry, index) => {
                 const row = document.createElement('tr');
+                
+                // Create outfit cell content with conditional image
+                let outfitCell = `<td>${entry.outfit}`;
+                if (entry.outfitImageUrl) {
+                    outfitCell += `<br><a href="${entry.outfitImageUrl}" target="_blank" class="mt-2 d-block">
+                        <img src="${entry.outfitImageUrl}" alt="Outfit thumbnail" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                    </a>`;
+                }
+                outfitCell += `</td>`;
+                
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${entry.anonymousId}</td>
-                    <td>${entry.outfit}</td>
+                    ${outfitCell}
                     <td>${entry.averageScore.toFixed(1)}</td>
                     <td>${entry.voteCount}</td>
                 `;
@@ -883,6 +973,117 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear input
         messageInput.value = '';
     });
+    
+    // QR Code Generator
+    generateQRForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const eventCode = document.getElementById('event-code-qr').value.trim();
+        
+        if (!eventCode) {
+            showToast('Error', 'Please enter an event code');
+            return;
+        }
+        
+        fetch(`${API_BASE_URL}/events/${eventCode}/qrcode`)
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.message || 'Failed to generate QR code');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Display QR code
+            const qrcodeContainer = document.getElementById('qrcode-container');
+            const qrcodeImage = document.getElementById('qrcode-image');
+            const qrcodeEventCode = document.getElementById('qrcode-event-code');
+            const qrcodeJoinUrl = document.getElementById('qrcode-join-url');
+            
+            qrcodeContainer.classList.remove('d-none');
+            qrcodeImage.src = data.qrCode;
+            qrcodeEventCode.textContent = data.eventCode;
+            qrcodeJoinUrl.href = data.joinUrl;
+            qrcodeJoinUrl.textContent = data.joinUrl;
+            
+            showToast('Success', 'QR code generated successfully');
+        })
+        .catch(error => {
+            console.error('Error generating QR code:', error);
+            showToast('Error', error.message || 'Failed to generate QR code');
+        });
+    });
+    
+    // QR Code Scanner
+    let html5QrCode;
+    
+    startScannerBtn.addEventListener('click', function() {
+        const scannerContainer = document.getElementById('scanner-container');
+        scannerContainer.classList.remove('d-none');
+        this.classList.add('d-none');
+        stopScannerBtn.classList.remove('d-none');
+        
+        html5QrCode = new Html5Qrcode("qr-reader");
+        const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrCode.start(
+            { facingMode: "environment" },
+            qrConfig,
+            onScanSuccess,
+            onScanFailure
+        );
+    });
+    
+    stopScannerBtn.addEventListener('click', function() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                const scannerContainer = document.getElementById('scanner-container');
+                scannerContainer.classList.add('d-none');
+                this.classList.add('d-none');
+                startScannerBtn.classList.remove('d-none');
+            });
+        }
+    });
+    
+    function onScanSuccess(decodedText, decodedResult) {
+        // Stop scanning
+        html5QrCode.stop();
+        
+        // Display results
+        const resultsElement = document.getElementById('qr-reader-results');
+        resultsElement.innerHTML = `<div class="alert alert-success">
+            <p><strong>QR Code Scanned Successfully!</strong></p>
+            <p>Detected URL: ${decodedText}</p>
+        </div>`;
+        
+        stopScannerBtn.classList.add('d-none');
+        startScannerBtn.classList.remove('d-none');
+        
+        // Extract event code from URL
+        try {
+            const url = new URL(decodedText);
+            const pathParts = url.pathname.split('/');
+            const eventCode = pathParts[pathParts.length - 1];
+            
+            if (eventCode) {
+                // Automatically fill in the join form
+                document.getElementById('event-code-join').value = eventCode;
+                
+                // Switch to participant section
+                document.querySelector('#sidebar a[data-section="participant-section"]').click();
+                
+                showToast('Success', `Event code ${eventCode} detected. Ready to join!`);
+            }
+        } catch (error) {
+            console.error('Error parsing QR code URL:', error);
+        }
+    }
+    
+    function onScanFailure(error) {
+        // Handle scan failure silently - no need to show errors for each frame
+        console.debug(`QR code scanning error: ${error}`);
+    }
 });
 
 // Helper Functions

@@ -470,7 +470,7 @@ paths:
 
   /events/{eventCode}/followup/match:
     get:
-      summary: Check if match has mutual interest in reconnecting
+      summary: Check if a match has mutual interest in reconnecting
       parameters:
         - name: eventCode
           in: path
@@ -484,18 +484,49 @@ paths:
             type: string
       responses:
         '200':
-          description: Match interest status retrieved successfully
+          description: Match reconnect information retrieved successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  matchParticipantId:
-                    type: string
                   mutualInterest:
                     type: boolean
                   matchContactInfo:
                     type: string
-                    description: Only provided if there is mutual interest
         '404':
-          description: Match not found 
+          description: Participant, match, or followup not found
+        '500':
+          description: Server error
+
+  /events/{eventCode}/qrcode:
+    get:
+      summary: Generate a QR code for joining an event
+      description: Creates a QR code image (as a data URL) containing a link that participants can scan to join the event
+      parameters:
+        - name: eventCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: QR code generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eventCode:
+                    type: string
+                    description: The event code
+                  qrCode:
+                    type: string
+                    description: Data URL containing the QR code image
+                  joinUrl:
+                    type: string
+                    description: The URL encoded in the QR code
+        '404':
+          description: Event not found
+        '500':
+          description: Server error 

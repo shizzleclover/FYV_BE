@@ -127,3 +127,66 @@ body {
 .toast {
     opacity: 1 !important;
 }
+
+/* Outfit image styles */
+.outfit-image {
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.outfit-image:hover {
+    transform: scale(1.05);
+}
+
+.outfit-image-container {
+    overflow: hidden;
+    border-radius: 8px;
+    position: relative;
+}
+
+#outfit-image-preview {
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#outfit-image-preview:hover {
+    transform: scale(1.02);
+}
+
+/* QR Code styles */
+#qrcode-image {
+    border: 1px solid #eee;
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    transition: transform 0.3s ease;
+}
+
+#qrcode-image:hover {
+    transform: scale(1.05);
+}
+
+#qr-reader {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+#qr-reader video {
+    width: 100% !important;
+    height: auto !important;
+}
+
+#qr-reader__dashboard_section_csr button {
+    background-color: #6c5ce7 !important;
+    border-radius: 4px !important;
+    padding: 8px 16px !important;
+    border: none !important;
+    color: white !important;
+}
+
+#qr-reader__filescan_input {
+    margin-top: 15px;
+}

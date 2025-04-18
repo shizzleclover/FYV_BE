@@ -62,6 +62,12 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Handle QR code join routes
+app.get('/join/:eventCode', (req, res) => {
+  const { eventCode } = req.params;
+  res.redirect(`/?join=${eventCode}`);
+});
+
 // Socket.IO setup
 console.log('Setting up Socket.IO server');
 require('./sockets/lobby')(io);
